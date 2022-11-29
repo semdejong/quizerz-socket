@@ -1,16 +1,26 @@
 require("dotenv").config();
+const { v4: uuidv4 } = require("uuid");
+const https = require("https");
+const fs = require("fs");
+
 const express = require("express");
 const app = express();
-const http = require("http");
-const server = http.createServer(app);
+
+var httpsOptions = {
+  ca: fs.readFileSync("ca_bundle.crt"),
+  key: fs.readFileSync("private.key"),
+  cert: fs.readFileSync("certificate.crt"),
+};
+
+const server = https.createServer(httpsOptions, app);
 const { Server } = require("socket.io");
+
 const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
   },
 });
-const { v4: uuidv4 } = require("uuid");
 
 let players = [];
 let games = [];
