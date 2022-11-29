@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const http = require("http");
@@ -138,8 +139,8 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(4000, () => {
-  console.log("listening on *:4000");
+server.listen(process.env.PORT, () => {
+  console.log("listening on *:" + process.env.PORT);
 });
 
 function makeid(length) {
