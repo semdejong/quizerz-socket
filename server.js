@@ -199,7 +199,7 @@ function makeid(length) {
 
 async function getGameData(gameId) {
   const gameData = await fetch(
-    `http://localhost:3000/api/game/getGame?gameId=${gameId}&socketSecret=${process.env.SOCKET_SECRET}`
+    `https://quizerz.com/api/game/getGame?gameId=${gameId}&socketSecret=${process.env.SOCKET_SECRET}`
   );
   return { result: gameData, data: await gameData.json() };
 }
