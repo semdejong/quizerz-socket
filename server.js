@@ -38,6 +38,7 @@ try {
       const player = {
         id: socket.id,
         name: userName,
+        uuid: uuidv4(),
         joinedGame: game.id,
         pin: pin,
         clientSecret,
@@ -98,7 +99,10 @@ try {
           players: [],
           currentPage: "lobby",
           gameData: { ...gameData.data, questions: undefined },
-          questions: gameData.data.questions,
+          questions: gameData.data.questions.map((question) => ({
+            ...question,
+            answers: [],
+          })),
           currentQuestion: -1,
         };
         games.push(game);
@@ -140,15 +144,105 @@ try {
       }
     });
 
-    socket.on("next-question", (questionId, gameId) => {
+    socket.on("next-question", (gameId) => {
       const game = games.find((game) => game.id === gameId);
-      game.currentQuestion = game.currentQuestion + 1;
-      game.currentPage = "question";
       if (game) {
+        if (game?.host?.id !== socket.id) {
+          return;
+        }
+
+        game.currentQuestion = game?.currentQuestion + 1;
+        game.currentPage = "question";
+
         socket.to(gameId).emit("next-question", {
           ...game?.questions?.[game.currentQuestion],
           correctAnswer: undefined,
         });
+      }
+    });
+
+    socket.on("answer-question", (answer) => {
+      if (answer === undefined) return;
+
+      const player = players.find((player) => player.id === socket.id);
+
+      if (!player) {
+        return;
+      }
+
+      const game = games.find((game) => game.id === player.joinedGame);
+      if (game) {
+        const question = game.questions[game.currentQuestion];
+        if (question.answers.find((answer) => answer.playerId === player.uuid))
+          return;
+        question.answers = [
+          ...question.answers,
+          { answer, playerId: player.uuid },
+        ];
+
+        const hostSocket = io.sockets.sockets.get(game.host.id);
+        if (hostSocket) {
+          hostSocket.emit("response-answer-question", question.answers);
+        }
+      }
+    });
+
+    socket.on("correct-answers", (gameId, openTextCorrectAnswers, callback) => {
+      console.log("correct-answers");
+      const game = games.find((game) => game.id === gameId);
+      if (game) {
+        if (game?.host?.id !== socket.id) {
+          return;
+        }
+
+        const question = game.questions[game.currentQuestion];
+
+        //check if openTextCorrectAnswers is supplied and if so, check open text question
+        if (question.answerType === "OPEN_TEXT") {
+          if (!openTextCorrectAnswers) return;
+
+          openTextCorrectAnswers.forEach((openTextCorrectAnswer) => {
+            question.answers.forEach((answer) => {
+              if (answer.playerId === openTextCorrectAnswer.playerId) {
+                answer.correct = true;
+              }
+            });
+          });
+
+          console.log(openTextCorrectAnswers);
+        } else if (question.answerType === "ESTIMATE") {
+          let closestAnswer = null;
+          question.answers.forEach((answer) => {
+            if (!closestAnswer) {
+              closestAnswer = answer;
+            } else {
+              if (
+                Math.abs(answer.answer - question.correctAnswer) <
+                Math.abs(closestAnswer.answer - question.correctAnswer)
+              ) {
+                closestAnswer = answer;
+              }
+            }
+          });
+
+          question.answers.forEach((answer) => {
+            if (answer.answer === closestAnswer.answer) {
+              answer.correct = true;
+            }
+          });
+        } else {
+          question.answers.forEach((answer) => {
+            if (parseInt(answer.answer) === parseInt(question.correctAnswer)) {
+              answer.correct = true;
+            }
+          });
+        }
+
+        //compare answers from question to correct answers and return answers with correct property
+
+        callback(false, question.answers);
+      } else {
+        callback(true);
       }
     });
 
