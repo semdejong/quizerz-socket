@@ -242,6 +242,10 @@ try {
               answer.correct = true;
             }
           });
+
+          if (question.answers.length === 1) {
+            question.answers[0].correct = true;
+          }
         } else {
           question.answers.forEach((answer) => {
             if (parseInt(answer.answer) === parseInt(question.correctAnswer)) {
