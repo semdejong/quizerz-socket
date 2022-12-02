@@ -223,22 +223,22 @@ try {
 
           console.log(openTextCorrectAnswers);
         } else if (question.answerType === "ESTIMATE") {
-          let closestAnswer = null;
+          let leastClosesAnswer = null;
           question.answers.forEach((answer) => {
-            if (!closestAnswer) {
-              closestAnswer = answer;
+            if (!leastClosesAnswer) {
+              leastClosesAnswer = answer;
             } else {
               if (
-                Math.abs(answer.answer - question.correctAnswer) <
-                Math.abs(closestAnswer.answer - question.correctAnswer)
+                Math.abs(answer.answer - question.correctAnswer) >
+                Math.abs(leastClosesAnswer.answer - question.correctAnswer)
               ) {
-                closestAnswer = answer;
+                leastClosesAnswer = answer;
               }
             }
           });
 
           question.answers.forEach((answer) => {
-            if (answer.answer === closestAnswer.answer) {
+            if (answer.answer !== leastClosesAnswer.answer) {
               answer.correct = true;
             }
           });
