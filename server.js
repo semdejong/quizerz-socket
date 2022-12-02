@@ -182,6 +182,9 @@ try {
       const game = games.find((game) => game.id === player.joinedGame);
       if (game) {
         const question = game.questions[game.currentQuestion];
+
+        if (question?.closed) return;
+
         if (question.answers.find((answer) => answer.playerId === player.uuid))
           return;
         question.answers = [
@@ -252,6 +255,38 @@ try {
         callback(false, question.answers);
       } else {
         callback(true);
+      }
+    });
+
+    socket.on("next-page", (gameId, page) => {
+      console.log("next-page");
+      const game = games.find((game) => game.id === gameId);
+      if (game) {
+        if (game?.host?.id !== socket.id) {
+          return;
+        }
+
+        game.currentPage = page;
+
+        if (page !== "question") {
+          game.questions[game.currentQuestion].closed = true;
+        }
+
+        socket.to(gameId).emit("next-page", page);
+      }
+    });
+
+    socket.on("stop-quiz", (gameId) => {
+      const game = games.find((game) => game.id === gameId);
+      if (game) {
+        if (game?.host?.id !== socket.id) {
+          return;
+        }
+        socket.to(gameId).emit("stop-quiz");
+
+        //remove game and players
+        games.filter((game) => game.id !== gameId);
+        players.filter((player) => player.joinedGame !== gameId);
       }
     });
 
