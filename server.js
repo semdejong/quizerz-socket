@@ -28,7 +28,10 @@ try {
         return;
       }
 
-      if (game.players.find((player) => player.name === userName)) {
+      if (
+        game?.players?.find?.((player) => player?.name === userName) ||
+        game?.inactivePlayers?.find?.((player) => player?.name === userName)
+      ) {
         socket.emit("response-join-game", false, "Username already taken");
         return;
       }
@@ -55,7 +58,7 @@ try {
       const hostSocket = io.sockets.sockets.get(game.host.id);
 
       if (hostSocket) {
-        hostSocket.emit("player-joined", game.players);
+        hostSocket.emit("player-joined", game.players, game.inactivePlayers);
       }
       socket.emit("response-join-game", true, player, {
         ...game?.questions?.[game.currentQuestion],
@@ -97,6 +100,7 @@ try {
           host: { id: socket.id, secret: clientSecret },
           pin: pin,
           players: [],
+          inactivePlayers: [],
           currentPage: "lobby",
           gameData: { ...gameData.data, questions: undefined },
           questions: gameData.data.questions.map((question) => ({
@@ -130,10 +134,15 @@ try {
         player.id = socket.id;
         socket.join(player.joinedGame);
         const game = games.find((game) => game.id === player.joinedGame);
-        game.players.push(player);
+        game.inactivePlayers = game.inactivePlayers.filter(
+          (inactivePlayer) => inactivePlayer.id !== player.id
+        );
+        if (!game.players.find((player) => player.id === socket.id)) {
+          game.players.push(player);
+        }
         const hostSocket = io.sockets.sockets.get(game.host.id);
         if (hostSocket) {
-          hostSocket.emit("player-joined", game.players);
+          hostSocket.emit("player-joined", game.players, game.inactivePlayers);
         }
         socket.emit("response-rejoin-game", player, game.currentPage, {
           ...game?.questions?.[game.currentQuestion],
@@ -214,25 +223,29 @@ try {
 
           console.log(openTextCorrectAnswers);
         } else if (question.answerType === "ESTIMATE") {
-          let closestAnswer = null;
+          let leastClosesAnswer = null;
           question.answers.forEach((answer) => {
-            if (!closestAnswer) {
-              closestAnswer = answer;
+            if (!leastClosesAnswer) {
+              leastClosesAnswer = answer;
             } else {
               if (
-                Math.abs(answer.answer - question.correctAnswer) <
-                Math.abs(closestAnswer.answer - question.correctAnswer)
+                Math.abs(answer.answer - question.correctAnswer) >
+                Math.abs(leastClosesAnswer.answer - question.correctAnswer)
               ) {
-                closestAnswer = answer;
+                leastClosesAnswer = answer;
               }
             }
           });
 
           question.answers.forEach((answer) => {
-            if (answer.answer === closestAnswer.answer) {
+            if (answer.answer !== leastClosesAnswer.answer) {
               answer.correct = true;
             }
           });
+
+          if (question.answers.length === 1) {
+            question.answers[0].correct = true;
+          }
         } else {
           question.answers.forEach((answer) => {
             if (parseInt(answer.answer) === parseInt(question.correctAnswer)) {
@@ -289,9 +302,10 @@ try {
           game.players = game.players.filter(
             (player) => player.id !== socket.id
           );
+          game.inactivePlayers = [...game.inactivePlayers, player];
           const hostSocket = io.sockets.sockets.get(game.host.id);
           if (hostSocket) {
-            hostSocket.emit("player-left", game.players);
+            hostSocket.emit("player-left", game.players, game.inactivePlayers);
           }
         }
       }
