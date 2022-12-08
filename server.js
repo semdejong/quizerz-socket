@@ -308,6 +308,7 @@ try {
       if (player) {
         const game = games.find((game) => game.id === player.joinedGame);
         if (game) {
+          game.inActivePlayers = [...game.inActivePlayers, player];
           game.players = game.players.filter(
             (player) => player.id !== socket.id
           );
