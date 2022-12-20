@@ -289,6 +289,58 @@ try {
       }
     });
 
+    socket.on("change-player-name", (gameId, playerId, name) => {
+      console.log("change-player-name");
+      const game = games.find((game) => game.id === gameId);
+      if (game) {
+        if (game?.host?.id !== socket.id) {
+          return;
+        }
+
+        const player = game.players.find((player) => player.id === playerId);
+        if (player) {
+          if (
+            game.players.find((player) => player.name === name) &&
+            game.players.find((player) => player.name === name)?.id !== playerId
+          ) {
+            socket.emit(
+              "player-changed",
+              game.players,
+              true,
+              "Player name already exists"
+            );
+            return;
+          }
+          player.name = name;
+          socket.emit("player-changed", game.players, false, "");
+        }
+      }
+    });
+
+    socket.on("kick-player", (gameId, playerId) => {
+      console.log("kick-player");
+      const game = games.find((game) => game.id === gameId);
+      if (game) {
+        if (game?.host?.id !== socket.id) {
+          return;
+        }
+
+        const player = game.players.find((player) => player.id === playerId);
+        const playerInPlayers = players.find(
+          (player) => player.id === playerId
+        );
+
+        if (player && playerInPlayers) {
+          game.players = game.players.filter(
+            (player) => player.id !== playerId
+          );
+
+          players = players.filter((player) => player.id !== playerId);
+          socket.emit("player-changed", game.players, false, "");
+        }
+      }
+    });
+
     socket.on("stop-quiz", (gameId) => {
       const game = games.find((game) => game.id === gameId);
       if (game) {
@@ -308,7 +360,7 @@ try {
       if (player) {
         const game = games.find((game) => game.id === player.joinedGame);
         if (game) {
-          game.inActivePlayers = [...game.inActivePlayers, player];
+          game.inActivePlayers = [...game.inactivePlayers, player];
           game.players = game.players.filter(
             (player) => player.id !== socket.id
           );
