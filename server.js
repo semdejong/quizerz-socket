@@ -53,6 +53,7 @@ try {
         uuid: uuidv4(),
         joinedGame: game.id,
         pin: pin,
+        score: 0,
         clientSecret,
       };
 
@@ -198,7 +199,11 @@ try {
           return;
         question.answers = [
           ...question.answers,
-          { answer, playerId: player.uuid },
+          {
+            answer,
+            playerId: player.uuid,
+            answered: question.answers.length + 1,
+          },
         ];
 
         const hostSocket = io.sockets.sockets.get(game.host.id);
@@ -250,6 +255,16 @@ try {
             if (answer.answer !== leastClosesAnswer.answer) {
               answer.correct = true;
             }
+
+            console.log(
+              answer.answer,
+              question.correctAnswer,
+              answer.answer === question.correctAnswer
+            );
+
+            if (parseInt(answer.answer) === parseInt(question.correctAnswer)) {
+              answer.correct = true;
+            }
           });
 
           if (question.answers.length === 1) {
@@ -263,9 +278,38 @@ try {
           });
         }
 
+        for (const answer of question.answers) {
+          if (answer.correct && answer.scored !== true) {
+            const player = game.players.find(
+              (player) => player.uuid === answer.playerId
+            );
+
+            const playerInPlayers = players.find(
+              (player) => player.uuid === answer.playerId
+            );
+
+            if (player && playerInPlayers) {
+              if (answer.answered > 5) {
+                player.score += 100;
+                playerInPlayers.score += 100;
+              } else {
+                let score = 100 + (6 - answer.answered) * 20;
+                if (score < 100) {
+                  score = 100;
+                }
+                player.score += score;
+                if (player !== playerInPlayers) {
+                  playerInPlayers.score += score;
+                }
+              }
+              answer.scored = true;
+            }
+          }
+        }
+
         //compare answers from question to correct answers and return answers with correct property
 
-        callback(false, question.answers);
+        callback(false, question.answers, game.players);
       } else {
         callback(true);
       }
