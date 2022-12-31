@@ -145,10 +145,41 @@ try {
         if (hostSocket) {
           hostSocket.emit("player-joined", game.players, game.inactivePlayers);
         }
-        socket.emit("response-rejoin-game", player, game.currentPage, {
+
+        const questionObject = {
           ...game?.questions?.[game.currentQuestion],
           correctAnswer: undefined,
+          answers: [],
+        };
+
+        questionObject.topics = questionObject?.topics?.map((topic) => {
+          let replacedTopic = "";
+
+          for (let i = 0; i < topic.length; i++) {
+            if (topic[i] === " ") {
+              replacedTopic += " ";
+              continue;
+            }
+            replacedTopic += "o";
+          }
+
+          const playersAnswer = game?.questions?.[
+            game?.currentQuestion
+          ]?.answers?.find((answer) => answer.playerId === player.uuid);
+
+          if (playersAnswer?.answer?.includes?.(topic)) {
+            replacedTopic = topic;
+          }
+
+          return replacedTopic;
         });
+
+        socket.emit(
+          "response-rejoin-game",
+          player,
+          game.currentPage,
+          questionObject
+        );
       } else {
         socket.emit("response-rejoin-game", false);
       }
@@ -164,10 +195,27 @@ try {
         game.currentQuestion = game?.currentQuestion + 1;
         game.currentPage = "question";
 
-        socket.to(gameId).emit("next-question", {
+        const questionObject = {
           ...game?.questions?.[game.currentQuestion],
           correctAnswer: undefined,
+          answers: [],
+        };
+
+        questionObject.topics = questionObject.topics.map((topic) => {
+          let replacedTopic = "";
+
+          for (let i = 0; i < topic.length; i++) {
+            if (topic[i] === " ") {
+              replacedTopic += " ";
+              continue;
+            }
+            replacedTopic += "o";
+          }
+
+          return replacedTopic;
         });
+
+        socket.to(gameId).emit("next-question", questionObject);
       }
     });
 
@@ -201,6 +249,92 @@ try {
         if (hostSocket) {
           hostSocket.emit("response-answer-question", question.answers);
         }
+      }
+    });
+
+    socket.on("answer-topic", (answer, cb) => {
+      if (answer === undefined) return;
+
+      const player = players.find((player) => player.id === socket.id);
+
+      if (!player) {
+        return;
+      }
+
+      const game = games.find((game) => game.id === player.joinedGame);
+      if (game) {
+        const question = game.questions[game.currentQuestion];
+
+        if (question?.closed) return;
+
+        if (question.answerType !== "TOPICS") return;
+
+        const topics = question.topics;
+
+        const correctTopic = topics.find((topic) => {
+          const lowercasedTopic = topic
+            .toLowerCase()
+            .trim()
+            .replaceAll(" ", "");
+          const lowercasedAnswer = answer
+            .toLowerCase()
+            .trim()
+            .replaceAll(" ", "");
+          if (
+            lowercasedTopic === answer.toLowerCase().trim().replaceAll(" ", "")
+          )
+            return true;
+
+          if (lowercasedTopic.length > 4 && lowercasedAnswer.length > 4) {
+            if (
+              lowercasedTopic.includes(lowercasedAnswer) ||
+              lowercasedAnswer.includes(lowercasedTopic)
+            )
+              return true;
+          }
+
+          return false;
+        });
+
+        if (!correctTopic) {
+          cb(false);
+          return;
+        }
+
+        const playersCurrentAnswer = question.answers.find(
+          (answer) => answer.playerId === player.uuid
+        );
+
+        if (playersCurrentAnswer) {
+          let newAnswers = question.answers.map((answerInA) => {
+            if (answerInA.playerId === player.uuid) {
+              if (answerInA.answer.includes(correctTopic)) return answerInA;
+              return {
+                answer: [...answerInA?.answer, correctTopic],
+                playerId: player.uuid,
+                answered: answerInA.answered,
+              };
+            }
+            return answer;
+          });
+          question.answers = newAnswers;
+        } else {
+          question.answers = [
+            ...question.answers,
+            {
+              answer: [correctTopic],
+              playerId: player.uuid,
+              answered: question.answers.length + 1,
+            },
+          ];
+        }
+
+        const hostSocket = io.sockets.sockets.get(game.host.id);
+        if (hostSocket) {
+          hostSocket.emit("response-answer-topic", question.answers);
+        }
+
+        cb(true, correctTopic);
       }
     });
 
@@ -261,6 +395,31 @@ try {
           if (question.answers.length === 1) {
             question.answers[0].correct = true;
           }
+        } else if (question.answerType === "TOPICS") {
+          let averageChars = 0;
+
+          question?.answers?.forEach?.((answer) => {
+            let chars = 0;
+            answer?.answer?.forEach?.((topic) => {
+              chars += topic.length;
+            });
+            averageChars += chars;
+          });
+
+          averageChars = averageChars / question.answers.length;
+
+          console.log(averageChars);
+
+          question?.answers?.forEach?.((answer) => {
+            let chars = 0;
+            answer?.answer?.forEach?.((topic) => {
+              chars += topic.length;
+            });
+            console.log(chars, averageChars);
+            if (chars >= averageChars) {
+              answer.correct = true;
+            }
+          });
         } else {
           question.answers.forEach((answer) => {
             if (parseInt(answer.answer) === parseInt(question.correctAnswer)) {
