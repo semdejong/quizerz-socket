@@ -22,7 +22,7 @@ try {
   io.on("connection", (socket) => {
     socket.on("join-game", (userName, pin) => {
       console.log("join-game", pin, userName);
-      const game = games.find((game) => game.pin === pin);
+      const game = games?.find?.((game) => game.pin === pin);
       if (!game) {
         socket.emit("response-join-game", false, "Game not found");
         return;
@@ -48,11 +48,11 @@ try {
         clientSecret,
       };
 
-      players.push(player);
+      players?.push?.(player);
 
       games
-        .find((game) => game.id === player.joinedGame)
-        .players.push({ ...player, clientSecret: undefined });
+        ?.find?.((game) => game?.id === player?.joinedGame)
+        .players?.push?.({ ...player, clientSecret: undefined });
 
       socket.join(game.id);
 
@@ -62,13 +62,13 @@ try {
         hostSocket.emit("player-joined", game.players, game.inactivePlayers);
       }
       socket.emit("response-join-game", true, player, {
-        ...game?.questions?.[game.currentQuestion],
+        ...game?.questions?.[game?.currentQuestion],
         correctAnswer: undefined,
       });
     });
 
     socket.on("check-pin-exists", (pin) => {
-      const game = games.find((game) => game.pin === pin);
+      const game = games?.find?.((game) => game?.pin === pin);
       if (game) {
         socket.emit("reponse-check-pin-exists", pin);
       } else {
@@ -78,9 +78,9 @@ try {
 
     socket.on("create-game", async (gameId, clientSecret = "") => {
       let game = {};
-      const gameExists = games.find((game) => game.id === gameId);
+      const gameExists = games?.find((game) => game?.id === gameId);
       if (gameExists) {
-        if (gameExists.host.secret === clientSecret) {
+        if (gameExists?.host?.secret === clientSecret) {
           socket.emit("game-exists", { ...gameExists, host: false });
         } else {
           console.log("game exists");
@@ -89,7 +89,7 @@ try {
       } else {
         const gameData = await getGameData(gameId);
 
-        if (gameData.result.status !== 200) {
+        if (gameData?.result?.status !== 200) {
           socket.emit("game-exists", false);
           return;
         }
@@ -98,19 +98,19 @@ try {
         const pin = makeid(6).toUpperCase();
         game = {
           id: gameId,
-          host: { id: socket.id, secret: clientSecret },
+          host: { id: socket?.id, secret: clientSecret },
           pin: pin,
           players: [],
           inactivePlayers: [],
           currentPage: "lobby",
-          gameData: { ...gameData.data, questions: undefined },
-          questions: gameData.data.questions.map((question) => ({
+          gameData: { ...gameData?.data, questions: undefined },
+          questions: gameData?.data?.questions?.map?.((question) => ({
             ...question,
             answers: [],
           })),
           currentQuestion: -1,
         };
-        games.push(game);
+        games?.push?.(game);
         socket.emit("game-created", game, clientSecret);
         socket.join(gameId);
       }
@@ -118,7 +118,7 @@ try {
 
     socket.on("set-host", (gameId, clientSecret) => {
       console.log("SETHOST");
-      const game = games.find((game) => game.id === gameId);
+      const game = games?.find?.((game) => game?.id === gameId);
       if (game?.host?.secret === clientSecret) {
         game.host.id = socket.id;
         socket.emit("host-set", game);
@@ -128,31 +128,35 @@ try {
     });
 
     socket.on("rejoin-game", (clientSecret) => {
-      const player = players.find(
-        (player) => player.clientSecret === clientSecret
+      const player = players?.find?.(
+        (player) => player?.clientSecret === clientSecret
       );
       if (player) {
-        player.id = socket.id;
-        socket.join(player.joinedGame);
-        const game = games.find((game) => game.id === player.joinedGame);
-        game.inactivePlayers = game.inactivePlayers.filter(
-          (inactivePlayer) => inactivePlayer.id !== player.id
+        player.id = socket?.id;
+        socket.join(player?.joinedGame);
+        const game = games?.find((game) => game?.id === player?.joinedGame);
+        game.inactivePlayers = game?.inactivePlayers?.filter(
+          (inactivePlayer) => inactivePlayer?.id !== player?.id
         );
-        if (!game.players.find((player) => player.id === socket.id)) {
-          game.players.push(player);
+        if (!game?.players?.find((player) => player?.id === socket?.id)) {
+          game?.players?.push?.(player);
         }
         const hostSocket = io.sockets.sockets.get(game.host.id);
         if (hostSocket) {
-          hostSocket.emit("player-joined", game.players, game.inactivePlayers);
+          hostSocket.emit(
+            "player-joined",
+            game?.players,
+            game?.inactivePlayers
+          );
         }
 
         const questionObject = {
-          ...game?.questions?.[game.currentQuestion],
+          ...game?.questions?.[game?.currentQuestion],
           correctAnswer: undefined,
           answers: [],
         };
 
-        questionObject.topics = questionObject?.topics?.map((topic) => {
+        questionObject.topics = questionObject?.topics?.map?.((topic) => {
           let replacedTopic = "";
 
           for (let i = 0; i < topic.length; i++) {
@@ -165,7 +169,7 @@ try {
 
           const playersAnswer = game?.questions?.[
             game?.currentQuestion
-          ]?.answers?.find((answer) => answer.playerId === player.uuid);
+          ]?.answers?.find((answer) => answer?.playerId === player?.uuid);
 
           if (playersAnswer?.answer?.includes?.(topic)) {
             replacedTopic = topic;
@@ -186,9 +190,9 @@ try {
     });
 
     socket.on("next-question", (gameId) => {
-      const game = games.find((game) => game.id === gameId);
+      const game = games?.find((game) => game?.id === gameId);
       if (game) {
-        if (game?.host?.id !== socket.id) {
+        if (game?.host?.id !== socket?.id) {
           return;
         }
 
@@ -201,7 +205,7 @@ try {
           answers: [],
         };
 
-        questionObject.topics = questionObject.topics.map((topic) => {
+        questionObject.topics = questionObject?.topics?.map?.((topic) => {
           let replacedTopic = "";
 
           for (let i = 0; i < topic.length; i++) {
@@ -261,17 +265,17 @@ try {
         return;
       }
 
-      const game = games.find((game) => game.id === player.joinedGame);
+      const game = games?.find?.((game) => game?.id === player?.joinedGame);
       if (game) {
-        const question = game.questions[game.currentQuestion];
+        const question = game?.questions[game?.currentQuestion];
 
         if (question?.closed) return;
 
-        if (question.answerType !== "TOPICS") return;
+        if (question?.answerType !== "TOPICS") return;
 
-        const topics = question.topics;
+        const topics = question?.topics;
 
-        const correctTopic = topics.find((topic) => {
+        const correctTopic = topics?.find((topic) => {
           const lowercasedTopic = topic
             .toLowerCase()
             .trim()
@@ -281,14 +285,14 @@ try {
             .trim()
             .replaceAll(" ", "");
           if (
-            lowercasedTopic === answer.toLowerCase().trim().replaceAll(" ", "")
+            lowercasedTopic === answer?.toLowerCase().trim().replaceAll(" ", "")
           )
             return true;
 
           if (lowercasedTopic.length > 4 && lowercasedAnswer.length > 4) {
             if (
-              lowercasedTopic.includes(lowercasedAnswer) ||
-              lowercasedAnswer.includes(lowercasedTopic)
+              lowercasedTopic?.includes(lowercasedAnswer) ||
+              lowercasedAnswer?.includes(lowercasedTopic)
             )
               return true;
           }
@@ -301,18 +305,18 @@ try {
           return;
         }
 
-        const playersCurrentAnswer = question.answers.find(
-          (answer) => answer.playerId === player.uuid
+        const playersCurrentAnswer = question?.answers?.find(
+          (answer) => answer?.playerId === player?.uuid
         );
 
         if (playersCurrentAnswer) {
-          let newAnswers = question.answers.map((answerInA) => {
-            if (answerInA.playerId === player.uuid) {
-              if (answerInA.answer.includes(correctTopic)) return answerInA;
+          let newAnswers = question?.answers?.map((answerInA) => {
+            if (answerInA?.playerId === player?.uuid) {
+              if (answerInA?.answer?.includes(correctTopic)) return answerInA;
               return {
                 answer: [...answerInA?.answer, correctTopic],
-                playerId: player.uuid,
-                answered: answerInA.answered,
+                playerId: player?.uuid,
+                answered: answerInA?.answered,
               };
             }
             return answer;
@@ -320,11 +324,11 @@ try {
           question.answers = newAnswers;
         } else {
           question.answers = [
-            ...question.answers,
+            ...question?.answers,
             {
               answer: [correctTopic],
               playerId: player.uuid,
-              answered: question.answers.length + 1,
+              answered: question?.answers?.length + 1,
             },
           ];
         }
@@ -346,7 +350,7 @@ try {
           return;
         }
 
-        const question = game.questions[game.currentQuestion];
+        const question = game?.questions?.[game?.currentQuestion];
 
         //check if openTextCorrectAnswers is supplied and if so, check open text question
         if (question.answerType === "OPEN_TEXT") {
@@ -406,7 +410,7 @@ try {
             averageChars += chars;
           });
 
-          averageChars = averageChars / question.answers.length;
+          averageChars = averageChars / question?.answers?.length;
 
           console.log(averageChars);
 
