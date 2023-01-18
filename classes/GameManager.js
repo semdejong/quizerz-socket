@@ -1,6 +1,6 @@
 import Game from "./Game.js";
 
-export default class GameManager {
+export default class GameManager extends Manager {
   static games = [];
 
   constructor() {

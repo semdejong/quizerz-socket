@@ -1,4 +1,4 @@
-export default class PlayersManager {
+export default class PlayersManager extends Manager {
   static players = [];
 
   constructor() {
