@@ -24,7 +24,7 @@ const app = express();
 
 var httpsOptions = {
   ca: fs.readFileSync("ca-bundle.crt"),
-  key: fs.readFileSync("private.key"),
+  // key: fs.readFileSync("private.key"),
   cert: fs.readFileSync("socket_quizerz_com.crt"),
 };
 
