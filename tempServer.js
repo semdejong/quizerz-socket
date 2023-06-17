@@ -23,9 +23,9 @@ import StopQuiz from "./functions/stopQuiz.js";
 const app = express();
 
 var httpsOptions = {
-  ca: fs.readFileSync("ca_bundle.crt"),
+  ca: fs.readFileSync("ca-bundle.crt"),
   key: fs.readFileSync("private.key"),
-  cert: fs.readFileSync("certificate.crt"),
+  cert: fs.readFileSync("socket_quizerz_com.crt"),
 };
 
 const server = https.createServer(httpsOptions, app);
