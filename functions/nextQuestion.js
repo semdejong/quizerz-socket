@@ -31,6 +31,8 @@ export default function nextQuestion(socket, gameId) {
       return replacedTopic;
     });
 
+    console.log("next-question", questionObject);
+
     socket.to(gameId).emit("next-question", questionObject);
   }
 }
