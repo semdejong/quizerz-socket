@@ -1,4 +1,5 @@
 import Game from "./Game.js";
+import Manager from "./Manager.js";
 
 export default class GameManager extends Manager {
   static games = [];

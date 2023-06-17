@@ -1,3 +1,5 @@
+import Manager from "./Manager.js";
+
 export default class PlayersManager extends Manager {
   static players = [];
 

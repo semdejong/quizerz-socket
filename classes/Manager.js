@@ -1,4 +1,4 @@
-class Manager {
+export default class Manager {
   constructor() {
     this._data = [];
   }
