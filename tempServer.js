@@ -1,9 +1,8 @@
 import * as dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import https from "https";
+import http from "http";
 import { Server } from "socket.io";
-import fs from "fs";
 
 import joinGame from "./functions/joinGame.js";
 import checkPin from "./functions/checkPin.js";
@@ -21,15 +20,7 @@ import kickPlayer from "./functions/kickPlayer.js";
 import StopQuiz from "./functions/stopQuiz.js";
 
 const app = express();
-
-var httpsOptions = {
-  ca: fs.readFileSync("ca-bundle.crt"),
-  // key: fs.readFileSync("private.key"),
-  cert: fs.readFileSync("socket_quizerz_com.crt"),
-};
-
-const server = https.createServer(httpsOptions, app);
-
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
